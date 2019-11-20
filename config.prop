@@ -1,0 +1,4 @@
+"Input File Path":"data/kalsec-2019.txt"
+"Stopwords File Path":"data/stopwords.csv"
+"Synonyms File Path":"data/synonyms.csv"
+"Result Folder Path":"results"
