@@ -25,7 +25,7 @@ additional_stopwords = ["Waitrose", "&", "Partners", "The", "food", "foods", "ne
 stoplist += additional_stopwords
 
 # Open a file and read it into memory
-filename="input/kalsec-2019.txt"
+filename="data/kalsec-2019.txt"
 f=open(filename, "r", encoding='utf8')
 sentences = f.readlines()
 text = ''.join(sentences).lower().replace('\n',' ')
@@ -57,7 +57,7 @@ for i, c in enumerate(sentences):
 #    sentence = sentence.replace(':','')
 #    sentence = sentence.replace('?','')
     sentence = re.sub('[=.#/?:$}]', '', sentence )
-    print(sentence)
+    #print(sentence)
     sentences[i] = sentence
 
 
