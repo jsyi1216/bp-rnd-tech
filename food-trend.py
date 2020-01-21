@@ -37,13 +37,13 @@ def getText(input_path):
         f = open(i,"r", encoding='utf8')
         sentences += f.readlines()
     
-    text = ''.join(sentences) #list -> string
+    text = ''.join(sentences)
 
     return text
 
 # Read stopwords
-def getStopwords(stopWordsFile): # Stopwords: 빈도수를 계산할 때 제외되는 단어 
-    stoplist = stopwords.words('english')#stopwords.words("english")는 NLTK가 정의한 영어 불용어 리스트를 리턴
+def getStopwords(stopWordsFile):
+    stoplist = stopwords.words('english')
     arr = []
 
     with open(stopWordsFile , newline='') as csvFile:
@@ -70,8 +70,8 @@ def getSynonyms(synonymsFile):
 # generate stopwords
 def getWords(text, stoplist, synonyms):
     list_of_words = [i.lower() for i in nltk.tokenize.wordpunct_tokenize(text) if i.lower() not in stoplist and i.isalpha()]
-#i.lower가 stoplist에 없으며, alpha이라면 text의 token값을 list_of_words에 저장
-    for i, w in enumerate(list_of_words): #enumerate : index값을 i에 넣어서 반환하는 for
+
+    for i, w in enumerate(list_of_words): 
         if synonyms.get(w) is not None:
             list_of_words[i] = synonyms.get(w)
     
@@ -103,9 +103,8 @@ def generateWordcloud(text, stoplist, resultsFolderPath):
     wordcloud = WordCloud(stopwords=stoplist, background_color="white").generate_from_frequencies(text) #.generate(text)
     st = datetime.datetime.fromtimestamp(time.time()).strftime('%Y%m%d%H%M%S')
 
-    # Display the generated image:
     fig = plt.figure(figsize=(8, 4))
-    plt.imshow(wordcloud, interpolation='bilinear') #nearist,none등 옵션 있고 pixel softner 정도 생각
+    plt.imshow(wordcloud, interpolation='bilinear')
     plt.axis("off")
     plt.gcf().canvas.set_window_title('Wordcloud')
     fig.savefig(resultsFolderPath+'/wordclould_'+st+'.jpg')
@@ -122,9 +121,9 @@ def main():
         print("Please check the property file.")
         exit()
 
-    #print(path)
+
     
-    text = getText(inputPath) #inputFile
+    text = getText(inputPath)
     stoplist = getStopwords(stopWordsFile)
     synonyms = getSynonyms(synonymsFile)
     mostcommon = getWords(text, stoplist, synonyms)
