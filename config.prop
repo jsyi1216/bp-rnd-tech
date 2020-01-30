@@ -2,3 +2,5 @@
 "Stopwords File Path":"data/stopwords.csv"
 "Synonyms File Path":"data/synonyms.csv"
 "Result Folder Path":"results"
+"Mask Shape ":"circle"
+//mask image options: square,heart,bread,cloud,circle
