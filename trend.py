@@ -124,7 +124,7 @@ def generateChart(mostcommon, resultsFolderPath):
 # Generate a word cloud image
 def generateWordcloud(text, stoplist, resultsFolderPath,maskImage):
     
-    mask_shape = np.array(Image.open("data/"+maskImage+".png"))
+    mask_shape = np.array(Image.open("config/"+maskImage+".png"))
     
     wordcloud = WordCloud(
     width = 700,
