@@ -32,6 +32,12 @@ import time
 from PIL import Image
 import numpy as np
 
+from collections import Counter
+import networkx as nx
+import re
+from nltk.tokenize import RegexpTokenizer
+
+
 # Read properties
 def getProperties(propFile):
     props = []
@@ -61,8 +67,8 @@ def getText(input_path):
     
     for i in path : 
         text = ''.join([text,extract_text_from_pdf(i)])
-        
-    return text
+        sentences += extract_sentence_from_pdf(i)
+    return text,sentences
 
 # Read stopwords
 def getStopwords(stopWordsFile):
@@ -137,7 +143,7 @@ def generateWordcloud(text, stoplist, resultsFolderPath,maskImage):
     wordcloud = wordcloud.generate_from_frequencies(text) #.generate(text)
     st = datetime.datetime.fromtimestamp(time.time()).strftime('%Y%m%d%H%M%S')
 
-    fig = plt.figure(figsize=(8, 8))
+    fig = plt.figure(figsize=(16, 16))
     plt.imshow(wordcloud, interpolation='bilinear')
     plt.axis("off")
     plt.gcf().canvas.set_window_title('Wordcloud')
@@ -164,7 +170,7 @@ def extract_text_from_pdf(pdf_path):
             page_interpreter.process_page(page)
  
         text = fake_file_handle.getvalue()
- 
+
     # close open handles
     converter.close()
     fake_file_handle.close()
@@ -251,16 +257,113 @@ def summary_file(text, weight):
     st = datetime.datetime.fromtimestamp(time.time()).strftime('%Y%m%d%H%M%S')
     
     summary = summary_doc(text, weight)    
+    print(summary)
     file2 = open("results/summary_"+st+".txt","w", encoding='utf8')
     file2.write(summary)
     file2.close()
     
     translator = Translator()
+    
     translation = translator.translate(summary, dest='ko')
     file3 = open("results/translated_summary_"+st+".txt","w", encoding='utf8')
     file3.write(translation.text)
+    print(translation.text)
     file3.close()
     
+'''
+-----------------------------------------
+word network modules begin from below 
+-----------------------------------------
+'''    
+
+def extract_sentence_from_pdf(pdf_path):
+    resource_manager = PDFResourceManager()
+    fake_file_handle = io.StringIO()
+    print(fake_file_handle)
+    converter = TextConverter(resource_manager, fake_file_handle)
+    page_interpreter = PDFPageInterpreter(resource_manager, converter)
+ 
+    with open(pdf_path, 'rb') as fh:
+        for page in PDFPage.get_pages(fh, 
+                                      caching=True,
+                                      check_extractable=True):
+            page_interpreter.process_page(page)
+ 
+        text = fake_file_handle.getvalue()
+ 
+    sent_list = sent_tokenize(text.replace('.\n', ' ') )
+    
+    converter.close()
+    fake_file_handle.close()
+ 
+    if text:
+        return sent_list
+
+
+def wordset(sentences,stoplist):
+
+    # Apply the stoplist to the text
+    for i, c in enumerate(sentences):
+        clean = [word for word in c.split() if word not in stoplist]
+        sentence = ' '.join(word[0] for word in [[''.join(i)] for i in clean])
+        sentence = re.sub('[,‘’=.#/?:$}]', '', sentence )   
+        sentences[i] = sentence     
+
+
+    bigrams = [b for l in sentences for b in zip(l.split(" ")[:-1], l.split(" ")[1:])]
+    bigram_counts = Counter(bigrams)
+    bigram_df = pd.DataFrame(bigram_counts.items(), columns=['bigram', 'count'])
+
+   
+    return bigram_df
+
+
+def generateDF(mostcommon,bigram_df):
+    
+    t1=[]
+    t2=[]
+    for m in mostcommon:
+        t1.append(m[0])
+
+    for idx, bigram in enumerate(bigram_df['bigram']):
+        if bigram[0] not in t1 and bigram[1] not in t1:
+            t2.append(idx)
+
+    df = bigram_df.drop(t2, axis=0).sort_values(by ='count', ascending=False).reset_index(drop=True).head(30)
+    return df
+    
+def generateWordNetwork(df,resultsFolderPath):
+    
+    NODESIZE=[2600,1700,5000,1000]
+    FONTSIZE=12
+    WITDH=2
+    EDGECOLOR='grey'
+    NODECOLOR='#f54254'
+    
+    # Create dictionary of bigrams and their counts
+    d = df.set_index('bigram').T.to_dict('records')
+    # Create network plot 
+    G = nx.Graph()
+    # Create connections between nodes
+    for k, v in d[0].items():
+        G.add_edge(k[0], k[1], weight=(v * 200))
+    #G.add_node("china", weight=100)
+    fig, ax = plt.subplots(figsize=(14, 10))
+    pos = nx.spring_layout(G, k=12)
+    # Plot networks
+    nx.draw_networkx(G, pos, node_size=NODESIZE,
+                     font_size=FONTSIZE, width=WITDH, edge_color=EDGECOLOR, 
+                     node_color=NODECOLOR, with_labels = True, ax=ax)
+
+#    nx.draw_networkx_labels(
+#        G, pos, font_family='sans-serif', font_color='black', font_size=10, font_weight='bold'
+#    )
+
+    plt.show()
+    st = datetime.datetime.fromtimestamp(time.time()).strftime('%Y%m%d%H%M%S')
+    fig.savefig(resultsFolderPath+'/word-network_'+st+'.jpg')
+
+
 '''
 -----------------------------------------
               main section 
@@ -269,6 +372,7 @@ def summary_file(text, weight):
 
 
 def main():
+    print('In progress...')
     props = getProperties("config.prop")
     mask_list = ['square','heart','bread','cloud','circle']
     isValid = 0
@@ -290,22 +394,32 @@ def main():
     
     if isValid == 0 :
         print("Error: Please check the mask name.")
-        time.sleep(6)
+        time.sleep(20)
         sys.exit()
             
     
     
-    
-    text = getText(inputPath)
+    #data processing
+    text,sentences = getText(inputPath)
     stoplist = getStopwords(stopWordsFile)
     synonyms = getSynonyms(synonymsFile)
     mostcommon = getWords(text, stoplist, synonyms)
+    
+    #frequency graph + wordcloud
     generateChart(mostcommon, resultsFolderPath)
     generateWordcloud(dict(mostcommon), stoplist, resultsFolderPath, maskImage)
+    
+    #word network
+    bigram_df = wordset(sentences, stoplist)
+    df = generateDF(mostcommon, bigram_df)
+    generateWordNetwork(df, resultsFolderPath)
     plt.show()
+    
+    #document summary + translation
+    summary_file(text, 1.5)
     print('Completed.')
     
-    summary_file(text, 1.5)
+  
     
 if __name__ == "__main__":
     main()

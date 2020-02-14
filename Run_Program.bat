@@ -14,5 +14,5 @@ REM PATH need to be added for Run_Program.bat
 REM --------
 REM D:\Anaconda\envs\tensorflow_cpu     #for "python" cmd
 REM D:\Anaconda\Scripts                 #activation batchfile "activate"
-REM D:\Anaconda\envs                    #for activate conda virtual env,in this case "tensorflow_cpu"
+REM D:\Anaconda\envs                    #for activate conda virtual env,"tensorflow_cpu" for this case 
 REM D:\workspace_VS\bp-rnd-tech\        #absolute path contains "trend.py"
